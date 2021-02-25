@@ -2,7 +2,6 @@ package com.example.player.ui
 
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
-import android.net.Uri
 import android.os.*
 import android.util.Log
 import android.view.View
@@ -12,21 +11,12 @@ import android.widget.ImageView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
-import com.example.player.PlayerApplication
 import com.example.player.R
+import com.example.player.data.Video
 import com.example.player.databinding.PlayerActivityBinding
-import com.example.player.di.component.DaggerAppComponent
 import com.example.player.di.factory.PlayerViewModelFactory
-import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.SimpleExoPlayer
-import com.google.android.exoplayer2.source.MediaSource
-import com.google.android.exoplayer2.source.hls.HlsMediaSource
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import dagger.android.AndroidInjection
-import dagger.android.support.AndroidSupportInjection
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 
@@ -48,12 +38,13 @@ class PlayerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         AndroidInjection.inject(this)
+
         binding = PlayerActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         fullscreenButton = binding.playerWindow.findViewById(R.id.exo_fullscreen_icon)
 
-        mediaUrl = this.getString(R.string.data_uri)
+        mediaUrl = Video.url
 
     }
 
@@ -64,7 +55,7 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        viewModel.release()
+        viewModel.releasePlayer()
     }
 
     override fun onResume() {

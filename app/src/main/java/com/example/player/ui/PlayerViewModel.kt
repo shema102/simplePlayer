@@ -12,5 +12,5 @@ class PlayerViewModel(private val streamingPlayer: StreamingPlayer) : ViewModel(
     fun play(url: String, currentPosition: Long, playWhenReady: Boolean) =
         streamingPlayer.play(url, currentPosition, playWhenReady)
 
-    fun release() = streamingPlayer.releasePlayer()
+    fun releasePlayer() = streamingPlayer.releasePlayer()
 }
