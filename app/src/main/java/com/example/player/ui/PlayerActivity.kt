@@ -9,24 +9,34 @@ import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.widget.ImageView
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
+import com.example.player.PlayerApplication
 import com.example.player.R
 import com.example.player.databinding.PlayerActivityBinding
+import com.example.player.di.component.DaggerAppComponent
+import com.example.player.di.factory.PlayerViewModelFactory
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.hls.HlsMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
+import dagger.android.AndroidInjection
+import dagger.android.support.AndroidSupportInjection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 
 class PlayerActivity : AppCompatActivity() {
+    @Inject
+    lateinit var viewModelFactory: PlayerViewModelFactory
+    private val viewModel: PlayerViewModel by viewModels { viewModelFactory }
 
     private lateinit var binding: PlayerActivityBinding
-    private var player: SimpleExoPlayer? = null
+    private lateinit var player: SimpleExoPlayer
     private lateinit var mediaUrl: String
 
     private lateinit var fullscreenButton: ImageView
@@ -37,6 +47,7 @@ class PlayerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        AndroidInjection.inject(this)
         binding = PlayerActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -53,7 +64,7 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        releasePlayer()
+        viewModel.release()
     }
 
     override fun onResume() {
@@ -91,7 +102,7 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        player?.let {
+        player.let {
             outState.putLong("CURRENT_PLAYBACK_POSITION", it.contentPosition)
             outState.putBoolean("IS_PLAYING_BACK", it.isPlaying)
             log("Saved Instance")
@@ -106,32 +117,9 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun initializePlayer() {
-        GlobalScope.launch(Dispatchers.Main) {
-            player = SimpleExoPlayer.Builder(this@PlayerActivity).build()
-            binding.playerWindow.player = player
-            binding.playerWindow.controllerShowTimeoutMs = 3000
-            val uri = Uri.parse(mediaUrl)
-            val mediaSource: MediaSource = buildMediaSource(uri)
-            if (player != null) {
-                player?.seekTo(player!!.currentWindowIndex, currentPosition)
-                player?.setMediaSource(mediaSource, false)
-                player?.playWhenReady = playWhenReady
-                player?.prepare()
-            }
-            log("Init Player")
-        }
-    }
-
-    private fun releasePlayer() {
-        player?.release()
-        player = null
-        log("Release Player")
-    }
-
-    private fun buildMediaSource(mediaUri: Uri): HlsMediaSource {
-        val dataSourceFactory = DefaultDataSourceFactory(this, "exoplayer-codelab")
-        val mediaItem = MediaItem.fromUri(mediaUri)
-        return HlsMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem)
+        player = viewModel.getPlayer(this)
+        binding.playerWindow.player = player
+        viewModel.play(mediaUrl, currentPosition, playWhenReady)
     }
 
     private fun changeOrientation() {
